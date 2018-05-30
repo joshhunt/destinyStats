@@ -13,16 +13,18 @@ const dbQueue = async.queue((job, cb) => {
 
   db.transaction(transaction => {
     return Item.destroy({ where: { [Op.or]: memberships }, transaction })
-      .then(() => {
-        return Promise.all(
+      .then(() =>
+        Promise.all(
           items.map(item => Item.create(item, { include: [Plug], transaction }))
-        );
-      })
+        )
+      )
       .then(() => {
         console.log(`Saved ${items.length} items and their plugs`);
         return cb();
       })
       .catch(err => {
+        console.log('Error saving items');
+        console.log(err);
         cb(err);
         throw err;
       });
@@ -30,66 +32,66 @@ const dbQueue = async.queue((job, cb) => {
 }, DB_CONCURRENCY);
 
 function collectItems(profiles) {
-  const { membershipType, membershipId } = profiles[0].profile.data.userInfo;
+  return _.flatMap(profiles, profile => {
+    const { membershipType, membershipId } = profile.profile.data.userInfo;
 
-  const socketsLookup = profiles[0].itemComponents.sockets.data;
+    const socketsLookup = profile.itemComponents.sockets.data;
 
-  function createItems(location, instancedItem) {
-    let plugs = socketsLookup[instancedItem.itemInstanceId];
+    function createItems(location, instancedItem) {
+      let plugs = socketsLookup[instancedItem.itemInstanceId];
 
-    const baseItem = {
-      membershipType,
-      membershipId,
-      itemHash: instancedItem.itemHash,
-      itemInstanceId: instancedItem.itemInstanceId,
-      quantity: instancedItem.quantity,
-      location
-    };
+      const baseItem = {
+        membershipType,
+        membershipId,
+        itemHash: instancedItem.itemHash,
+        itemInstanceId: instancedItem.itemInstanceId,
+        quantity: instancedItem.quantity,
+        location
+      };
 
-    if (plugs) {
-      baseItem.plugs = plugs.sockets.map((plug, socketIndex) => ({
-        plugHash: plug.plugHash,
-        socketIndex
-      }));
+      if (plugs) {
+        baseItem.plugs = plugs.sockets.map((plug, socketIndex) => ({
+          plugHash: plug.plugHash,
+          socketIndex
+        }));
+      }
+
+      return baseItem;
     }
 
-    return baseItem;
-  }
+    const characterInventoryItems = _.chain(profile.characterInventories.data)
+      .flatMap(inventory => inventory.items)
+      .map(createItems.bind(null, 'characterInventory'))
+      .value();
 
-  const characterInventoryItems = _.chain(profiles[0].characterInventories.data)
-    .flatMap(inventory => inventory.items)
-    .map(createItems.bind(null, 'characterInventory'))
-    .value();
+    const characterEquipmentItems = _(profile.characterEquipment.data)
+      .flatMap(inventory => inventory.items)
+      .map(createItems.bind(null, 'characterEquipment'))
+      .value();
 
-  const characterEquipmentItems = _(profiles[0].characterEquipment.data)
-    .flatMap(inventory => inventory.items)
-    .map(createItems.bind(null, 'characterEquipment'))
-    .value();
+    const profileInventoryItems = _(profile.profileInventory.data.items)
+      .map(createItems.bind(null, 'profileInventory'))
+      .value();
 
-  const profileInventoryItems = _(profiles[0].profileInventory.data.items)
-    .map(createItems.bind(null, 'profileInventory'))
-    .value();
+    return _([])
+      .concat(
+        characterInventoryItems,
+        characterEquipmentItems,
+        profileInventoryItems
+      )
+      .groupBy('itemHash')
+      .flatMap((items, itemHash) => {
+        const [sampleItem] = items;
 
-  const items = _([])
-    .concat(
-      characterInventoryItems,
-      characterEquipmentItems,
-      profileInventoryItems
-    )
-    .groupBy('itemHash')
-    .flatMap((items, itemHash) => {
-      const [sampleItem] = items;
-
-      return sampleItem.itemInstanceId
-        ? items
-        : {
-            ...sampleItem,
-            quantity: items.reduce((acc, item) => acc + item.quantity, 0)
-          };
-    })
-    .value();
-
-  return items;
+        return sampleItem.itemInstanceId
+          ? items
+          : {
+              ...sampleItem,
+              quantity: items.reduce((acc, item) => acc + item.quantity, 0)
+            };
+      })
+      .value();
+  });
 }
 
 function updateInventory(req, res, next) {
