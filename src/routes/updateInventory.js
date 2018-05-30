@@ -3,7 +3,7 @@ const async = require('async');
 const present = require('present');
 const { Op } = require('sequelize');
 
-const { Item, Plug } = require('../lib/db');
+const { db, Item, Plug } = require('../lib/db');
 const { getAllProfilesForUser } = require('../lib/destiny');
 
 const DB_CONCURRENCY = 10;
@@ -11,15 +11,19 @@ const DB_CONCURRENCY = 10;
 const dbQueue = async.queue((job, cb) => {
   const { memberships, items } = job;
 
-  const start = present();
-  return Item.destroy({ where: { [Op.or]: memberships } })
-    .then(() => {
-      return Promise.all(
-        items.map(item => Item.create(item, { include: [Plug] }))
-      );
-    })
-    .then(() => cb())
-    .catch(cb);
+  db.transaction(transaction => {
+    return Item.destroy({ where: { [Op.or]: memberships }, transaction })
+      .then(() => {
+        return Promise.all(
+          items.map(item => Item.create(item, { include: [Plug], transaction }))
+        );
+      })
+      .then(() => cb())
+      .catch(err => {
+        cb(err);
+        throw err;
+      });
+  });
 }, DB_CONCURRENCY);
 
 function collectItems(profiles) {

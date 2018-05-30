@@ -37,7 +37,8 @@ const ready = sequelize.sync();
 module.exports = {
   Item,
   Plug,
-  ready
+  ready,
+  db: sequelize
 };
 
 // sequelize
