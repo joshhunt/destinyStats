@@ -1,9 +1,26 @@
 const _ = require('lodash');
+const async = require('async');
 const present = require('present');
 const { Op } = require('sequelize');
 
 const { Item, Plug } = require('../lib/db');
 const { getAllProfilesForUser } = require('../lib/destiny');
+
+const DB_CONCURRENCY = 10;
+
+const dbQueue = async.queue((job, cb) => {
+  const { memberships, items } = job;
+
+  const start = present();
+  return Item.destroy({ where: { [Op.or]: memberships } })
+    .then(() => {
+      return Promise.all(
+        items.map(item => Item.create(item, { include: [Plug] }))
+      );
+    })
+    .then(() => cb())
+    .catch(cb);
+}, DB_CONCURRENCY);
 
 function collectItems(profiles) {
   const { membershipType, membershipId } = profiles[0].profile.data.userInfo;
@@ -83,23 +100,9 @@ function updateInventory(req, res, next) {
         ])
       );
 
-      console.log(memberships);
+      dbQueue.push({ memberships, items });
 
-      const start = present();
-      return Item.destroy({ where: { [Op.or]: memberships } })
-        .then(() => {
-          const start = present();
-          return Promise.all(
-            items.map(item => Item.create(item, { include: [Plug] }))
-          );
-        })
-        .then(() => {
-          const end = present();
-          const duration = Math.ceil(end - start);
-          console.log('Took', duration, 'ms');
-
-          res.json({ success: true, items });
-        });
+      res.send({ success: `let's hope so!` });
     })
     .catch(next);
 }
