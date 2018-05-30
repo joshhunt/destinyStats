@@ -7,7 +7,10 @@ const morgan = require('morgan');
 const { Item, Perk } = require('./lib/db');
 const { getAllProfilesForUser } = require('./lib/destiny');
 
-const updateInventory = require('./routes/updateInventory');
+const {
+  updateInventory,
+  updateInventoryQueueStatus
+} = require('./routes/updateInventory');
 
 const app = express();
 const PORT = process.env.PORT;
@@ -44,6 +47,7 @@ app.get('/test', (req, res, next) => {
 });
 
 app.post('/update-inventory', updateInventory);
+app.get('/update-inventory/queue', updateInventoryQueueStatus);
 
 app.listen(PORT, () => {
   console.log('CORS-enabled web server listening on port', PORT);

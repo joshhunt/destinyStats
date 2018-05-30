@@ -107,4 +107,13 @@ function updateInventory(req, res, next) {
     .catch(next);
 }
 
-module.exports = updateInventory;
+function updateInventoryQueueStatus(req, res) {
+  res.json({
+    length: dbQueue.length(),
+    started: dbQueue.started,
+    running: dbQueue.running(),
+    idle: dbQueue.idle()
+  });
+}
+
+module.exports = { updateInventory, updateInventoryQueueStatus };
