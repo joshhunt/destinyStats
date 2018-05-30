@@ -7,6 +7,7 @@ console.log({ DB_DATABASE, DB_USERNAME, DB_PASSWORD, DB_HOST });
 const sequelize = new Sequelize(DB_DATABASE, DB_USERNAME, DB_PASSWORD, {
   host: DB_HOST,
   dialect: 'postgres',
+  logging: false,
   pool: {
     max: 5,
     min: 0,
