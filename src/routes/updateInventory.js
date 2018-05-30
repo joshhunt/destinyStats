@@ -18,7 +18,10 @@ const dbQueue = async.queue((job, cb) => {
           items.map(item => Item.create(item, { include: [Plug], transaction }))
         );
       })
-      .then(() => cb())
+      .then(() => {
+        console.log(`Saved ${items.length} items and their plugs`);
+        return cb();
+      })
       .catch(err => {
         cb(err);
         throw err;
