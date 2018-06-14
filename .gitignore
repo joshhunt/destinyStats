@@ -1,3 +1,6 @@
 .env
 node_modules
 yarn-error.log
+ghostInsights.json
+ghostInsightsLowlines.json
+ghosts.json

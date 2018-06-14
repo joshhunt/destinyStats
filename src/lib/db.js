@@ -1,11 +1,12 @@
 const Sequelize = require('sequelize');
 
-const { DB_DATABASE, DB_USERNAME, DB_PASSWORD, DB_HOST } = process.env;
+const { DB_DATABASE, DB_USERNAME, DB_PASSWORD, DB_HOST, DB_PORT } = process.env;
 
-console.log({ DB_DATABASE, DB_USERNAME, DB_PASSWORD, DB_HOST });
+console.log({ DB_DATABASE, DB_USERNAME, DB_PASSWORD, DB_HOST, DB_PORT });
 
 const sequelize = new Sequelize(DB_DATABASE, DB_USERNAME, DB_PASSWORD, {
   host: DB_HOST,
+  port: DB_PORT,
   dialect: 'postgres',
   logging: false,
   pool: {
