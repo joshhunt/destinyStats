@@ -96,6 +96,7 @@ function collectItems(profiles) {
 
 function updateInventory(req, res, next) {
   console.log('Fetching profiles for user');
+
   getAllProfilesForUser(req.query.accessToken)
     .then(profiles => {
       console.log('Got profiles, massaging data');

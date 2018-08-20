@@ -59,6 +59,27 @@ const findGhostType = (_sockets, itemDefs) => {
   return (found || { name: '' }).name;
 };
 
+const plugType = (plugHash, itemDefs) => {
+  const plugItem = itemDefs[plugHash];
+
+  const found = REGEXES.find(({ re, name }) => {
+    return plugItem.displayProperties.name.match(re);
+  });
+
+  return (found || {}).name;
+};
+
+const getSocketTypes = (sockets, itemDefs) => {
+  return sockets.map(plugs => {
+    return plugs.map(plugHash => plugType(plugHash, itemDefs));
+  });
+};
+
+const getUniqueSocketTypes = socketTypes => {
+  const types = [].concat(...socketTypes).filter(Boolean);
+  return _.uniq(types);
+};
+
 const countPlugs = ghosts =>
   _(ghosts)
     .flatMap('plugs')
@@ -117,9 +138,21 @@ getItemDefinitions()
           ? lowlinesPlugs(ghosts, itemDefs)
           : countPlugs(ghosts, itemDefs);
 
+        const types = getUniqueSocketTypes(getSocketTypes(sockets, itemDefs));
+
+        if (types.length > 1) {
+          const ghost = itemDefs[itemHash];
+          console.log(
+            ` * Multiple types for ghost ${ghost.displayProperties.name} [${
+              ghost.hash
+            }]`
+          );
+        }
+
         return {
           hash: parseInt(itemHash),
           type: findGhostType(sockets, itemDefs),
+          types: types,
           sockets
         };
       })
