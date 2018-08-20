@@ -1,5 +1,5 @@
 const path = require('path');
-const configPath = path.join(__dirname, '.env');
+const configPath = path.join(__dirname, '..', '.env');
 console.log('loading config from', configPath);
 require('dotenv').config({ path: configPath });
 
