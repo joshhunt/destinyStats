@@ -1,5 +1,8 @@
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+const configPath = path.join(__dirname, '.env');
+console.log('loading config from', configPath);
+require('dotenv').config({ path: configPath });
+
 require('isomorphic-fetch');
 const express = require('express');
 const cors = require('cors');
